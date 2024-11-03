@@ -1,44 +1,46 @@
-# Check initial health status
+# Check initial health
 curl -s http://localhost:8080/health
 
-# Write initial test data
+# Write initial data
 curl -X POST http://localhost:8080/write \
-  -H "Content-Type: application/json" \
-  -d '{"key":"test1", "value":"before_failure"}' | jq
+-H "Content-Type: application/json" \
+-d '{"key":"test1", "value":"before_failure"}' | jq
 
-# Verify initial write
+# Read initial data
 curl -s http://localhost:8080/read/test1 | jq
 
-# Trigger failure mode
+# Trigger system failure
 curl -X POST http://localhost:5002/fail | jq
 
-# Check health status after failure
+# Check health after failure
 curl -s http://localhost:8080/health
 
-# Read existing data during failure
+# Read data during failure
 curl -s http://localhost:8080/read/test1 | jq
 
-# Attempt to write new data during failure
+# Try writing during failure
 curl -X POST http://localhost:8080/write \
-  -H "Content-Type: application/json" \
-  -d '{"key":"test2", "value":"during_failure"}' | jq
+-H "Content-Type: application/json" \
+-d '{"key":"test2", "value":"during_failure"}' | jq
 
-# Verify writes during failure
+# Read second test data
 curl -s http://localhost:8080/read/test2 | jq
+
+# Read first test data again
 curl -s http://localhost:8080/read/test1 | jq
 
-# Write more test data
+# Write third test data
 curl -X POST http://localhost:8080/write \
-  -H "Content-Type: application/json" \
-  -d '{"key":"test3", "value":"after_failure"}'
+-H "Content-Type: application/json" \
+-d '{"key":"test3", "value":"after_failure"}'
 
-# Trigger recovery
+# Trigger system recovery
 curl -X POST http://localhost:5002/recover
 
-# Verify system health after recovery
+# Check health after recovery
 curl -s http://localhost:8080/health
 
-# Check all data after recovery
+# Verify all data after recovery
 curl -s http://localhost:8080/read/test1 | jq
 curl -s http://localhost:8080/read/test2 | jq
 curl -s http://localhost:8080/read/test3 | jq
