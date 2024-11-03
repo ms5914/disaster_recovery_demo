@@ -9,7 +9,6 @@ curl -X POST http://localhost:8080/write \
 # Verify initial write
 curl -s http://localhost:8080/read/test1 | jq
 
-
 # Trigger failure mode
 curl -X POST http://localhost:5002/fail | jq
 
@@ -33,13 +32,11 @@ curl -X POST http://localhost:8080/write \
   -H "Content-Type: application/json" \
   -d '{"key":"test3", "value":"after_failure"}'
 
-
 # Trigger recovery
 curl -X POST http://localhost:5002/recover
 
 # Verify system health after recovery
 curl -s http://localhost:8080/health
-
 
 # Check all data after recovery
 curl -s http://localhost:8080/read/test1 | jq
