@@ -6,8 +6,24 @@ import os
 import time
 from datetime import datetime
 import threading
+import prometheus_client
+from prometheus_client import Counter, Histogram, Gauge
+
+
+# Initialize Prometheus metrics
+REQUESTS = Counter('http_requests_total', 'Total HTTP requests', ['method', 'endpoint', 'status'])
+RESPONSE_TIME = Histogram('http_response_time_seconds', 'Response time in seconds', ['endpoint'])
+HEALTH_STATUS = Gauge('node_health_status', 'Node health status (1=healthy, 0=unhealthy)')
+DATA_ITEMS = Gauge('data_items_total', 'Total number of data items stored')
+REPLICATION_FAILURES = Counter('replication_failures_total', 'Total number of replication failures')
+
+
+
 
 app = Flask(__name__)
+# Enable Prometheus metrics collection
+prometheus_client.start_http_server(9090)
+
 
 ROLE = os.environ.get('ROLE', 'primary')
 DATA_DIR = '/app/data'
@@ -50,8 +66,30 @@ class DistributedDatabase:
 
 db = DistributedDatabase()
 
+
+@app.before_request
+def before_request():
+    request.start_time = time.time()
+
+@app.after_request
+def after_request(response):
+    resp_time = time.time() - request.start_time
+    REQUESTS.labels(
+        method=request.method,
+        endpoint=request.path,
+        status=response.status_code
+    ).inc()
+    RESPONSE_TIME.labels(endpoint=request.path).observe(resp_time)
+    return response
+
+@app.route('/metrics')
+def metrics():
+    return prometheus_client.generate_latest()
+
+
 @app.route('/health')
 def health_check():
+    HEALTH_STATUS.set(1 if db.healthy else 0)
     status = 'healthy' if db.healthy else 'unhealthy'
     response = {
         'status': status,
@@ -74,6 +112,7 @@ def write_data():
         
         # If we're primary and unhealthy, reject the write
         if ROLE == 'primary' and not db.healthy:
+            REQUESTS.labels(method='POST', endpoint='/write', status=503).inc()
             return jsonify({'error': 'Primary is unhealthy'}), 503
             
         # If we're backup, accept writes when primary is down
@@ -90,18 +129,20 @@ def write_data():
         with db.data_lock:
             db.data[key] = value
             db.save_data()
-            
+            DATA_ITEMS.set(len(db.data))
             # Only replicate if we're the healthy primary
             if ROLE == 'primary' and db.healthy:
                 success = db.replicate_to_backup(key, value)
                 if not success:
                     app.logger.warning("Failed to replicate to backup")
+                    REPLICATION_FAILURES.inc()
         
         return jsonify({
             'status': 'success',
             'written_by': ROLE
         })
     except Exception as e:
+        REQUESTS.labels(method='POST', endpoint='/write', status=500).inc()
         app.logger.error(f"Write failed: {str(e)}")
         return jsonify({'error': str(e)}), 500
 

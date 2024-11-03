@@ -63,6 +63,48 @@ services:
       timeout: 10s
       retries: 3
 
+  # Add Prometheus
+  prometheus:
+    image: prom/prometheus
+    container_name: prometheus
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+    ports:
+      - "9090:9090"
+    networks:
+      - dr-network
+
+  # Add Grafana
+  grafana:
+    image: grafana/grafana
+    container_name: grafana
+    ports:
+      - "3000:3000"
+    networks:
+      - dr-network
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_DASHBOARDS_MIN_REFRESH_INTERVAL=5s
+      - GF_INSTALL_PLUGINS=grafana-piechart-panel
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning
+      - ./grafana/dashboards:/etc/grafana/dashboards
+
+  nginx-exporter:
+    image: nginx/nginx-prometheus-exporter:0.11.0
+    container_name: nginx-exporter
+    command:
+      - -nginx.scrape-uri=http://load-balancer:80/nginx_status
+    networks:
+      - dr-network
+    depends_on:
+      - load-balancer
+
 networks:
   dr-network:
     driver: bridge
+
+volumes:
+  grafana-data:  
