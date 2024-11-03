@@ -43,4 +43,4 @@ curl -s http://localhost:8080/health
 # Verify all data after recovery
 curl -s http://localhost:8080/read/test1 | jq \
 curl -s http://localhost:8080/read/test2 | jq \
-curl -s http://localhost:8080/read/test3 | jq \
+curl -s http://localhost:8080/read/test3 | jq 
