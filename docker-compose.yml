@@ -1,0 +1,68 @@
+version: '3.8'
+
+services:
+  primary-db:
+    build: 
+      context: .
+      dockerfile: Dockerfile
+    container_name: primary-db
+    environment:
+      - ROLE=primary
+      - REPLICA_HOST=backup-db
+    ports:
+      - "5002:5000"
+    networks:
+      - dr-network
+    volumes:
+      - ./data/primary:/app/data    # Changed to relative path
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  backup-db:
+    build: 
+      context: .
+      dockerfile: Dockerfile
+    container_name: backup-db
+    environment:
+      - ROLE=backup
+      - PRIMARY_HOST=primary-db
+    ports:
+      - "5003:5000"
+    networks:
+      - dr-network
+    volumes:
+      - ./data/backup:/app/data     # Changed to relative path
+    depends_on:
+      - primary-db
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  load-balancer:
+    build:
+      context: .
+      dockerfile: Dockerfile.nginx
+    container_name: load-balancer
+    ports:
+      - "8080:80"
+    networks:
+      - dr-network
+    depends_on:
+      - primary-db
+      - backup-db
+    healthcheck:
+      test: ["CMD", "nginx", "-t"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+networks:
+  dr-network:
+    driver: bridge
