@@ -4,7 +4,7 @@ services:
   primary-db:
     build: 
       context: .
-      dockerfile: Dockerfile
+      dockerfile: app/Dockerfile
     container_name: primary-db
     environment:
       - ROLE=primary
@@ -25,7 +25,7 @@ services:
   backup-db:
     build: 
       context: .
-      dockerfile: Dockerfile
+      dockerfile: app/Dockerfile
     container_name: backup-db
     environment:
       - ROLE=backup
@@ -62,6 +62,23 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
+
+  client:
+    build:
+      context: .
+      dockerfile: client/Dockerfile
+    container_name: db-client
+    environment:
+      - LOAD_BALANCER_HOST=load-balancer
+      - LOAD_BALANCER_PORT=80
+      - INITIAL_DELAY_SECONDS=15
+      - REQUEST_INTERVAL_SECONDS=2
+    networks:
+      - dr-network
+    depends_on:
+      load-balancer:
+        condition: service_healthy
+
 
   # Add Prometheus
   prometheus:
