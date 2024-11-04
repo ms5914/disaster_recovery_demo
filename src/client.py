@@ -4,7 +4,6 @@ import os
 import logging
 import json
 import random
-import string
 
 # Configure logging
 logging.basicConfig(
@@ -55,18 +54,67 @@ def send_write_request():
         logger.error(f"Error making request to {write_url}: {e}")
         logger.info("-" * 50)
 
+def check_server_health():
+    """Check if the primary database is healthy"""
+    primary_host = os.getenv('PRIMARY_HOST', 'primary-db')
+    primary_port = os.getenv('PRIMARY_PORT', '5000')
+    health_url = f'http://{primary_host}:{primary_port}/health'
+
+    try:
+        response = requests.get(health_url)
+        return response.status_code == 200
+    except requests.exceptions.RequestException:
+        return False
+
+def toggle_server_health():
+    """Send a request to fail or recover the primary database based on its current health status"""
+    primary_host = os.getenv('PRIMARY_HOST', 'primary-db')
+    primary_port = os.getenv('PRIMARY_PORT', '5000')
+
+    # Check current server health
+    is_healthy = check_server_health()
+
+    # Determine endpoint based on health status
+    endpoint = "fail" if is_healthy else "recover"
+    request_url = f'http://{primary_host}:{primary_port}/{endpoint}'
+
+    try:
+        logger.info(f"Server is currently {'healthy' if is_healthy else 'unhealthy'}")
+        logger.info(f"Sending {endpoint} request to primary database...")
+
+        response = requests.post(request_url)
+
+        logger.info(f"{endpoint.capitalize()} request status: {response.status_code}")
+        try:
+            response_json = response.json()
+            logger.info(f"Response: {json.dumps(response_json, indent=2)}")
+        except json.JSONDecodeError:
+            logger.info(f"Response text: {response.text}")
+
+        logger.info("-" * 50)
+        return response.status_code == 200
+
+    except requests.exceptions.RequestException as e:
+        logger.error(f"Error sending {endpoint} request: {e}")
+        logger.info("-" * 50)
+        return False
+
 def main():
     # Initial delay to allow the load balancer and servers to start
-    initial_delay = int(os.getenv('INITIAL_DELAY_SECONDS', '3'))
+    initial_delay = int(os.getenv('INITIAL_DELAY_SECONDS', '5'))
     logger.info(f"Client starting up, waiting for {initial_delay} seconds initial delay...")
     time.sleep(initial_delay)
 
     # Continuous loop to send requests
-    interval = int(os.getenv('REQUEST_INTERVAL_SECONDS', '30'))
+    interval = int(os.getenv('REQUEST_INTERVAL_SECONDS', '5'))
     logger.info(f"Starting request loop with {interval} seconds interval")
-
+    messages_sent = 0
     while True:
         send_write_request()
+        messages_sent+=1
+        if messages_sent%10==0:
+            toggle_server_health()
+
         time.sleep(interval)
 
 if __name__ == "__main__":

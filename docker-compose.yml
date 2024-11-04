@@ -17,10 +17,10 @@ services:
       - ./data/primary:/app/data    # Changed to relative path
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
-      interval: 30s
-      timeout: 10s
+      interval: 5s
+      timeout: 5s
       retries: 3
-      start_period: 40s
+      start_period: 5s
 
   backup-db:
     build: 
@@ -59,7 +59,7 @@ services:
       - backup-db
     healthcheck:
       test: ["CMD", "nginx", "-t"]
-      interval: 30s
+      interval: 2s
       timeout: 10s
       retries: 3
 
@@ -73,6 +73,8 @@ services:
       - LOAD_BALANCER_PORT=80
       - INITIAL_DELAY_SECONDS=15
       - REQUEST_INTERVAL_SECONDS=2
+      - PRIMARY_HOST=primary-db
+      - PRIMARY_PORT=5000
     networks:
       - dr-network
     depends_on:
