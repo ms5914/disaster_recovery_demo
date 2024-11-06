@@ -56,7 +56,7 @@ def send_write_request():
 
 def check_server_health():
     """Check if the primary database is healthy"""
-    primary_host = os.getenv('PRIMARY_HOST', 'primary-db')
+    primary_host = os.getenv('PRIMARY_HOST', 'primary-server')
     primary_port = os.getenv('PRIMARY_PORT', '5000')
     health_url = f'http://{primary_host}:{primary_port}/health'
 
@@ -68,7 +68,7 @@ def check_server_health():
 
 def toggle_server_health():
     """Send a request to fail or recover the primary database based on its current health status"""
-    primary_host = os.getenv('PRIMARY_HOST', 'primary-db')
+    primary_host = os.getenv('PRIMARY_HOST', 'primary-server')
     primary_port = os.getenv('PRIMARY_PORT', '5000')
 
     # Check current server health
