@@ -2,14 +2,14 @@ global:
   scrape_interval: 5s
 
 scrape_configs:
-  - job_name: 'primary-db'
+  - job_name: 'primary-server'
     static_configs:
-      - targets: ['primary-db:5000']
+      - targets: ['primary-server:5000']
     metrics_path: '/metrics'
 
-  - job_name: 'backup-db'
+  - job_name: 'backup-server'
     static_configs:
-      - targets: ['backup-db:5000']
+      - targets: ['backup-server:5000']
     metrics_path: '/metrics'
 
   - job_name: 'nginx'

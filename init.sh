@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Stop all containers
-docker-compose down
+docker compose down
 
 # Remove all stopped containers
 docker rm $(docker ps -a -q) 2>/dev/null || true
@@ -24,4 +24,4 @@ echo "{}" > data/backup/data.json
 chmod 666 data/primary/data.json data/backup/data.json
 
 # Rebuild and start
-docker-compose up --build
+docker compose up --build
