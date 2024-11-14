@@ -52,18 +52,27 @@ curl -s http://localhost:8080/read/test2 | jq
 # Read first test data again
 curl -s http://localhost:8080/read/test1 | jq
 
-# Write third test data
-curl -X POST http://localhost:8080/write \
--H "Content-Type: application/json" \
--d '{"key":"test3", "value":"after_failure"}'
-
 # Trigger system recovery
 curl -X POST http://localhost:5002/recover
 
 # Check health after recovery
 curl -s http://localhost:8080/health
 
+# Write third test data
+curl -X POST http://localhost:8080/write \
+-H "Content-Type: application/json" \
+-d '{"key":"test3", "value":"after_failure"}'
+
 # Verify all data after recovery
 curl -s http://localhost:8080/read/test1 | jq \
 curl -s http://localhost:8080/read/test2 | jq \
 curl -s http://localhost:8080/read/test3 | jq 
+
+# Checkpoints
+curl -X GET http://localhost:5002/checkpoints | jq  
+
+# Checkpoints
+curl -X GET http://localhost:5003/checkpoints | jq   
+
+# Checkpoint looks like
+curl -X GET http://localhost:5002/checkpoints/{id} | jq
