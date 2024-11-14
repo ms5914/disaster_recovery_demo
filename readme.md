@@ -1,3 +1,4 @@
+
 1. Basic Failover
    ✓ Primary and backup servers
    ✓ Simple health checks
@@ -14,7 +15,8 @@
 4. Simple Data Consistency
    ✓ Basic data copying between primary/backup
 
-
+Prometheus endpoint:http://localhost:9090/
+grafana endpoint:http://localhost:3000/
 
 
 
